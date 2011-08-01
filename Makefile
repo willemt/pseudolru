@@ -1,4 +1,5 @@
 CC     = gcc
+CCFLAGS = -g
 
 
 all: tests
@@ -6,12 +7,12 @@ all: tests
 main.c:
 	sh make-tests.sh > main.c
 
-tests: main.c splaytree.o test_splaytree.c CuTest.c main.c
-	$(CC) -o $@ $^
+tests: main.c pseudolru.o test_pseudolru.c CuTest.c main.c
+	$(CC) $(CCFLAGS) -o $@ $^
 	./tests
 
-splaytree.o: splaytree.c
-	$(CC) -c -o $@ $^
+pseudolru.o: pseudolru.c
+	$(CC) $(CCFLAGS) -c -o $@ $^
 
 clean:
-	rm -f main.c splaytree.o tests
+	rm -f main.c pseudolru.o tests

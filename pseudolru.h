@@ -1,20 +1,21 @@
 /*
  * =====================================================================================
  *
- *       Filename:  splaytree.h
+ *       Filename:  pseudo_lru.h
  *
  *    Description:  
  *
  *        Version:  1.0
- *        Created:  07/26/11 22:11:27
+ *        Created:  07/26/11 22:27:34
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  Willem Thiart
  *        Company:  
  *
  * =====================================================================================
  */
+
 
 typedef struct
 {
@@ -26,46 +27,45 @@ typedef struct
     const void *
     );
     int count;
-} splaytree_t;
+} pseudolru_t;
 
-
-splaytree_t *splaytree_initalloc(
+pseudolru_t *pseudolru_initalloc(
     int (*cmp) (const void *,
                 const void *)
 );
 
-void splaytree_free(
-    splaytree_t * st
+void pseudolru_free(
+    pseudolru_t * st
 );
 
-int splaytree_is_empty(
-    splaytree_t * st
+int pseudolru_is_empty(
+    pseudolru_t * st
 );
 
-
-void *splaytree_remove(
-    splaytree_t * st,
+void *pseudolru_get(
+    pseudolru_t * st,
     const void *key
 );
 
-
-void *splaytree_get(
-    splaytree_t * st,
+void *pseudolru_remove(
+    pseudolru_t * st,
     const void *key
 );
 
-
-int splaytree_count(
-    splaytree_t * st
+void *pseudolru_pop_lru(
+    pseudolru_t * dt
 );
 
-
-void *splaytree_peek(
-    splaytree_t * st
+int pseudolru_count(
+    pseudolru_t * st
 );
 
-void splaytree_put(
-    splaytree_t * st,
+void *pseudolru_peek(
+    pseudolru_t * st
+);
+
+void pseudolru_put(
+    pseudolru_t * st,
     void *key,
     void *value
 );

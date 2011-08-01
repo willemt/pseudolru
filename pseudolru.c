@@ -30,7 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "splaytree.h"
+
+#include "pseudolru.h"
 
 #define LEFT 0
 #define RIGHT 1
@@ -41,17 +42,18 @@ struct tree_node_s
 {
     tree_node_t *left, *right;
     void *key, *value;
+    int bit;
 };
 
-splaytree_t *splaytree_initalloc(
+pseudolru_t *pseudolru_initalloc(
     int (*cmp) (const void *,
                 const void *)
 )
 {
-    splaytree_t *st;
+    pseudolru_t *st;
 
-    st = malloc(sizeof(splaytree_t));
-    memset(st, 0, sizeof(splaytree_t));
+    st = malloc(sizeof(pseudolru_t));
+    memset(st, 0, sizeof(pseudolru_t));
     st->cmp = cmp;
     return st;
 }
@@ -68,8 +70,8 @@ static void __free_node(
     }
 }
 
-void splaytree_free(
-    splaytree_t * st
+void pseudolru_free(
+    pseudolru_t * st
 )
 {
     __free_node(st->root);
@@ -87,6 +89,7 @@ static tree_node_t *__init_node(
     new->left = new->right = NULL;
     new->key = key;
     new->value = value;
+    new->bit = 0;
     return new;
 }
 
@@ -120,7 +123,7 @@ static void __rotate_left(
  * bring this value to the top
  * */
 static tree_node_t *__splay(
-    splaytree_t * st,
+    pseudolru_t * st,
     int update_if_not_found,
     tree_node_t ** gpa,
     tree_node_t ** pa,
@@ -145,11 +148,13 @@ static tree_node_t *__splay(
     }
     else if (cmp > 0)
     {
+        (*child)->bit = RIGHT;
         next =
             __splay(st, update_if_not_found, pa, child, &(*child)->left, key);
     }
     else if (0 > cmp)
     {
+        (*child)->bit = LEFT;
         next =
             __splay(st, update_if_not_found, pa, child, &(*child)->right, key);
     }
@@ -219,15 +224,31 @@ static tree_node_t *__splay(
     return next;
 }
 
-int splaytree_is_empty(
-    splaytree_t * st
+int pseudolru_is_empty(
+    pseudolru_t * st
 )
 {
     return NULL == st->root;
 }
 
-void *splaytree_remove(
-    splaytree_t * st,
+/**
+ * Get this item referred to by key.
+ * Slap it as root.
+ *
+ */
+void *pseudolru_get(
+    pseudolru_t * st,
+    const void *key
+)
+{
+    tree_node_t *node;
+
+    node = __splay(st, 0, NULL, NULL, (tree_node_t **) & st->root, key);
+    return node ? node->value : NULL;
+}
+
+void *pseudolru_remove(
+    pseudolru_t * st,
     const void *key
 )
 {
@@ -235,8 +256,7 @@ void *splaytree_remove(
 
     void *val;
 
-    /*  make removed node the root */
-    if (!splaytree_get(st, key))
+    if (!pseudolru_get(st, key))
     {
         return NULL;
     }
@@ -248,7 +268,7 @@ void *splaytree_remove(
     assert(root->key == key);
 
     /* get left side's most higest value node */
-    if ((left_highest = root->left))
+    if (left_highest = root->left)
     {
         tree_node_t *prev = root;
 
@@ -259,7 +279,7 @@ void *splaytree_remove(
         }
 
         /* do the swap */
-        prev->right = NULL;
+        prev->right = left_highest->left;
         st->root = left_highest;
         left_highest->left = root->left;
         left_highest->right = root->right;
@@ -273,30 +293,47 @@ void *splaytree_remove(
 
     st->count--;
 
-    assert(root != st->root);
     free(root);
 
     return val;
 }
 
-/**
- * get this item referred to by key. Slap it as root.
- *
- */
-void *splaytree_get(
-    splaytree_t * st,
-    const void *key
+static tree_node_t *__get_lru(
+    tree_node_t * node
 )
 {
-    tree_node_t *node;
+    if (!node)
+    {
+        return NULL;
+    }
 
-    node = __splay(st, 0, NULL, NULL, (tree_node_t **) & st->root, key);
+    if (node->bit == RIGHT)
+    {
+        if (node->right)
+        {
+            return __get_lru(node->right);
+        }
+    }
+    else if (node->bit == LEFT)
+    {
+        if (node->left)
+        {
+            return __get_lru(node->left);
+        }
+    }
 
-    return node ? node->value : NULL;
+    return node;
+}
+
+void *pseudolru_pop_lru(
+    pseudolru_t * dt
+)
+{
+    return pseudolru_remove(dt, __get_lru(dt->root)->key);
 }
 
 #if 0
-static int __count_recurse(
+static int __count(
     tree_node_t * node
 )
 {
@@ -311,8 +348,8 @@ static int __count_recurse(
 }
 #endif
 
-int splaytree_count(
-    splaytree_t * st
+int pseudolru_count(
+    pseudolru_t * st
 )
 {
 #if 1
@@ -322,15 +359,15 @@ int splaytree_count(
 #endif
 }
 
-void *splaytree_peek(
-    splaytree_t * st
+void *pseudolru_peek(
+    pseudolru_t * st
 )
 {
     return st->root ? ((tree_node_t *) st->root)->value : NULL;
 }
 
-void splaytree_put(
-    splaytree_t * st,
+void pseudolru_put(
+    pseudolru_t * st,
     void *key,
     void *value
 )
