@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <assert.h>
 
+#include <stdio.h>
+
 #include "pseudolru.h"
 
 #define LEFT 0
@@ -44,6 +46,38 @@ struct tree_node_s
     void *key, *value;
     int bit;
 };
+
+#if 0
+static void __traverse(
+    tree_node_t * node,
+    int d
+)
+{
+    if (!node)
+        return;
+
+    int ii;
+
+    for (ii = 0; ii < d; ii++)
+        printf(" ");
+    printf("%lx\n", (unsigned long int) (void *) node);
+
+    if (node->right)
+    {
+        for (ii = 0; ii < d; ii++)
+            printf(" ");
+        printf(" R");
+        traverse(node->right, d + 1);
+    }
+    if (node->left)
+    {
+        for (ii = 0; ii < d; ii++)
+            printf(" ");
+        printf(" L");
+        traverse(node->left, d + 1);
+    }
+}
+#endif
 
 pseudolru_t *pseudolru_initalloc(
     int (*cmp) (const void *,
@@ -140,6 +174,8 @@ static tree_node_t *__splay(
         return NULL;
     }
 
+    assert(st->cmp);
+
     cmp = st->cmp((*child)->key, key);
 
     if (cmp == 0)
@@ -221,6 +257,7 @@ static tree_node_t *__splay(
         __rotate_left(gpa);
     }
 
+
     return next;
 }
 
@@ -234,7 +271,6 @@ int pseudolru_is_empty(
 /**
  * Get this item referred to by key.
  * Slap it as root.
- *
  */
 void *pseudolru_get(
     pseudolru_t * st,
@@ -268,10 +304,13 @@ void *pseudolru_remove(
     assert(root->key == key);
 
     /* get left side's most higest value node */
-    if (left_highest = root->left)
+    if (root->left)
     {
         tree_node_t *prev = root;
 
+        left_highest = root->left;
+
+        /*  get furtherest right - since this is 'higher' */
         while (left_highest->right)
         {
             prev = left_highest;
@@ -279,11 +318,15 @@ void *pseudolru_remove(
         }
 
         /* do the swap */
-        prev->right = left_highest->left;
+        if (prev != root)
+        {
+            prev->right = left_highest->left;
+            left_highest->left = root->left;
+        }
         st->root = left_highest;
-        left_highest->left = root->left;
         left_highest->right = root->right;
     }
+
     /* there is no left */
     else
     {
