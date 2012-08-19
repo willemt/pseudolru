@@ -169,6 +169,7 @@ static tree_node_t *__splay(
 
     tree_node_t *next;
 
+    /* if no child, we have reached the bottom of the tree with no success: exit */
     if (!(*child))
     {
         return NULL;
@@ -178,6 +179,7 @@ static tree_node_t *__splay(
 
     cmp = st->cmp((*child)->key, key);
 
+    /* we have found the item */
     if (cmp == 0)
     {
         next = *child;
@@ -188,7 +190,7 @@ static tree_node_t *__splay(
         next =
             __splay(st, update_if_not_found, pa, child, &(*child)->left, key);
     }
-    else if (0 > cmp)
+    else
     {
         (*child)->bit = LEFT;
         next =
