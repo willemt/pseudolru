@@ -1,20 +1,5 @@
-/*
- * =====================================================================================
- *
- *       Filename:  pseudo_lru.h
- *
- *    Description:  
- *
- *        Version:  1.0
- *        Created:  07/26/11 22:27:34
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Willem Thiart
- *        Company:  
- *
- * =====================================================================================
- */
+#ifndef PSEUDOLRU_H
+#define PSEUDOLRU_H
 
 
 typedef struct
@@ -29,26 +14,30 @@ typedef struct
     int count;
 } pseudolru_t;
 
-pseudolru_t *pseudolru_initalloc(
+pseudolru_t *pseudolru_new(
     int (*cmp) (const void *,
                 const void *)
 );
 
 void pseudolru_free(
-    pseudolru_t * st
+    pseudolru_t * me
 );
 
 int pseudolru_is_empty(
-    pseudolru_t * st
+    pseudolru_t * me
 );
 
+
+/**
+ * Get this item referred to by key.
+ * Set it as root */
 void *pseudolru_get(
-    pseudolru_t * st,
+    pseudolru_t * me,
     const void *key
 );
 
 void *pseudolru_remove(
-    pseudolru_t * st,
+    pseudolru_t * me,
     const void *key
 );
 
@@ -57,15 +46,17 @@ void *pseudolru_pop_lru(
 );
 
 int pseudolru_count(
-    pseudolru_t * st
+    pseudolru_t * me
 );
 
 void *pseudolru_peek(
-    pseudolru_t * st
+    pseudolru_t * me
 );
 
 void pseudolru_put(
-    pseudolru_t * st,
+    pseudolru_t * me,
     void *key,
     void *value
 );
+
+#endif /* PSEUDOLRU_H */

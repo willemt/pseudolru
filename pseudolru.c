@@ -79,17 +79,15 @@ static void __traverse(
 }
 #endif
 
-pseudolru_t *pseudolru_initalloc(
+pseudolru_t *pseudolru_new(
     int (*cmp) (const void *,
                 const void *)
 )
 {
-    pseudolru_t *st;
-
-    st = malloc(sizeof(pseudolru_t));
-    memset(st, 0, sizeof(pseudolru_t));
-    st->cmp = cmp;
-    return st;
+    pseudolru_t *me = malloc(sizeof(pseudolru_t));
+    memset(me, 0, sizeof(pseudolru_t));
+    me->cmp = cmp;
+    return me;
 }
 
 static void __free_node(
@@ -105,11 +103,11 @@ static void __free_node(
 }
 
 void pseudolru_free(
-    pseudolru_t * st
+    pseudolru_t * me
 )
 {
-    __free_node(st->root);
-    free(st);
+    __free_node(me->root);
+    free(me);
 }
 
 static tree_node_t *__init_node(
@@ -117,9 +115,7 @@ static tree_node_t *__init_node(
     void *value
 )
 {
-    tree_node_t *new;
-
-    new = malloc(sizeof(tree_node_t));
+    tree_node_t *new = malloc(sizeof(tree_node_t));
     new->left = new->right = NULL;
     new->key = key;
     new->value = value;
@@ -131,9 +127,7 @@ static void __rotate_right(
     tree_node_t ** pa
 )
 {
-    tree_node_t *child;
-
-    child = (*pa)->left;
+    tree_node_t *child = (*pa)->left;
     assert(child);
     (*pa)->left = child->right;
     child->right = *pa;
@@ -144,9 +138,7 @@ static void __rotate_left(
     tree_node_t ** pa
 )
 {
-    tree_node_t *child;
-
-    child = (*pa)->right;
+    tree_node_t *child = (*pa)->right;
     assert(child);
     (*pa)->right = child->left;
     child->left = *pa;
@@ -157,7 +149,7 @@ static void __rotate_left(
  * bring this value to the top
  * */
 static tree_node_t *__splay(
-    pseudolru_t * st,
+    pseudolru_t * me,
     int update_if_not_found,
     tree_node_t ** gpa,
     tree_node_t ** pa,
@@ -165,8 +157,6 @@ static tree_node_t *__splay(
     const void *key
 )
 {
-    int cmp;
-
     tree_node_t *next;
 
     /* if no child, we have reached the bottom of the tree with no success: exit */
@@ -175,9 +165,9 @@ static tree_node_t *__splay(
         return NULL;
     }
 
-    assert(st->cmp);
+    assert(me->cmp);
 
-    cmp = st->cmp((*child)->key, key);
+    int cmp = me->cmp((*child)->key, key);
 
     /* we have found the item */
     if (cmp == 0)
@@ -188,13 +178,13 @@ static tree_node_t *__splay(
     {
         (*child)->bit = RIGHT;
         next =
-            __splay(st, update_if_not_found, pa, child, &(*child)->left, key);
+            __splay(me, update_if_not_found, pa, child, &(*child)->left, key);
     }
     else
     {
         (*child)->bit = LEFT;
         next =
-            __splay(st, update_if_not_found, pa, child, &(*child)->right, key);
+            __splay(me, update_if_not_found, pa, child, &(*child)->right, key);
     }
 
     if (!next)
@@ -260,34 +250,29 @@ static tree_node_t *__splay(
         __rotate_left(gpa);
     }
 
-
     return next;
 }
 
 int pseudolru_is_empty(
-    pseudolru_t * st
+    pseudolru_t * me
 )
 {
-    return NULL == st->root;
+    return NULL == me->root;
 }
 
-/**
- * Get this item referred to by key.
- * Slap it as root.
- */
 void *pseudolru_get(
-    pseudolru_t * st,
+    pseudolru_t * me,
     const void *key
 )
 {
     tree_node_t *node;
 
-    node = __splay(st, 0, NULL, NULL, (tree_node_t **) & st->root, key);
+    node = __splay(me, 0, NULL, NULL, (tree_node_t **) & me->root, key);
     return node ? node->value : NULL;
 }
 
 void *pseudolru_remove(
-    pseudolru_t * st,
+    pseudolru_t * me,
     const void *key
 )
 {
@@ -295,15 +280,15 @@ void *pseudolru_remove(
 
     void *val;
 
-    if (!pseudolru_get(st, key))
+    if (!pseudolru_get(me, key))
     {
         return NULL;
     }
 
-    root = st->root;
+    root = me->root;
     val = root->value;
 
-    assert(0 < st->count);
+    assert(0 < me->count);
     assert(root->key == key);
 
     /* get left side's most higest value node */
@@ -326,7 +311,7 @@ void *pseudolru_remove(
             prev->right = left_highest->left;
             left_highest->left = root->left;
         }
-        st->root = left_highest;
+        me->root = left_highest;
         left_highest->right = root->right;
     }
 
@@ -334,10 +319,10 @@ void *pseudolru_remove(
     else
     {
         assert(root);
-        st->root = root->right;
+        me->root = root->right;
     }
 
-    st->count--;
+    me->count--;
 
     free(root);
 
@@ -395,43 +380,41 @@ static int __count(
 #endif
 
 int pseudolru_count(
-    pseudolru_t * st
+    pseudolru_t * me
 )
 {
 #if 1
-    return st->count;
+    return me->count;
 #else
-    return __count(st->root);
+    return __count(me->root);
 #endif
 }
 
 void *pseudolru_peek(
-    pseudolru_t * st
+    pseudolru_t * me
 )
 {
-    return st->root ? ((tree_node_t *) st->root)->value : NULL;
+    return me->root ? ((tree_node_t *) me->root)->value : NULL;
 }
 
 void pseudolru_put(
-    pseudolru_t * st,
+    pseudolru_t * me,
     void *key,
     void *value
 )
 {
     tree_node_t *new;
 
-    int cmp;
-
-    if (!st->root)
+    if (!me->root)
     {
-        st->root = __init_node(key, value);
-        st->count++;
+        me->root = __init_node(key, value);
+        me->count++;
         goto exit;
     }
 
-    new = __splay(st, 1, NULL, NULL, (tree_node_t **) & st->root, key);
+    new = __splay(me, 1, NULL, NULL, (tree_node_t **) & me->root, key);
 
-    cmp = st->cmp(((tree_node_t *) st->root)->key, key);
+    int cmp = me->cmp(((tree_node_t *) me->root)->key, key);
 
     if (cmp != 0)
     {
@@ -439,21 +422,21 @@ void pseudolru_put(
 
         if (0 < cmp)
         {
-            new->right = st->root;
+            new->right = me->root;
             new->left = new->right->left;
             new->right->left = NULL;
         }
         else
         {
-            new->left = st->root;
+            new->left = me->root;
             new->right = new->left->right;
             new->left->right = NULL;
         }
 
-        st->count++;
+        me->count++;
     }
 
-    st->root = new;
+    me->root = new;
 
   exit:
     return;
