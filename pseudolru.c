@@ -1,31 +1,3 @@
-/*
- 
-Copyright (c) 2011, Willem-Hendrik Thiart
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * The names of its contributors may not be used to endorse or promote
-      products derived from this software without specific prior written
-      permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL WILLEM-HENDRIK THIART BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
 
 #include <stdlib.h>
 #include <string.h>
@@ -47,44 +19,12 @@ struct tree_node_s
     int bit;
 };
 
-#if 0
-static void __traverse(
-    tree_node_t * node,
-    int d
-)
-{
-    if (!node)
-        return;
-
-    int ii;
-
-    for (ii = 0; ii < d; ii++)
-        printf(" ");
-    printf("%lx\n", (unsigned long int) (void *) node);
-
-    if (node->right)
-    {
-        for (ii = 0; ii < d; ii++)
-            printf(" ");
-        printf(" R");
-        traverse(node->right, d + 1);
-    }
-    if (node->left)
-    {
-        for (ii = 0; ii < d; ii++)
-            printf(" ");
-        printf(" L");
-        traverse(node->left, d + 1);
-    }
-}
-#endif
-
 pseudolru_t *pseudolru_new(
     int (*cmp) (const void *,
                 const void *)
 )
 {
-    pseudolru_t *me = malloc(sizeof(pseudolru_t));
+    pseudolru_t *me = calloc(1,sizeof(pseudolru_t));
     memset(me, 0, sizeof(pseudolru_t));
     me->cmp = cmp;
     return me;
@@ -157,8 +97,6 @@ static tree_node_t *__splay(
     const void *key
 )
 {
-    tree_node_t *next;
-
     /* if no child, we have reached the bottom of the tree with no success: exit */
     if (!(*child))
     {
@@ -169,9 +107,11 @@ static tree_node_t *__splay(
 
     int cmp = me->cmp((*child)->key, key);
 
-    /* we have found the item */
+    tree_node_t *next;
+
     if (cmp == 0)
     {
+        /* we have found the item */
         next = *child;
     }
     else if (cmp > 0)
@@ -276,17 +216,14 @@ void *pseudolru_remove(
     const void *key
 )
 {
-    tree_node_t *root, *left_highest;
-
-    void *val;
 
     if (!pseudolru_get(me, key))
     {
         return NULL;
     }
 
-    root = me->root;
-    val = root->value;
+    tree_node_t *root = me->root;
+    void *val = root->value;
 
     assert(0 < me->count);
     assert(root->key == key);
@@ -295,8 +232,7 @@ void *pseudolru_remove(
     if (root->left)
     {
         tree_node_t *prev = root;
-
-        left_highest = root->left;
+        tree_node_t *left_highest = root->left;
 
         /*  get furtherest right - since this is 'higher' */
         while (left_highest->right)
@@ -314,7 +250,6 @@ void *pseudolru_remove(
         me->root = left_highest;
         left_highest->right = root->right;
     }
-
     /* there is no left */
     else
     {
@@ -441,3 +376,35 @@ void pseudolru_put(
   exit:
     return;
 }
+
+#if 0
+static void __traverse(
+    tree_node_t * node,
+    int d
+)
+{
+    if (!node)
+        return;
+
+    int ii;
+
+    for (ii = 0; ii < d; ii++)
+        printf(" ");
+    printf("%lx\n", (unsigned long int) (void *) node);
+
+    if (node->right)
+    {
+        for (ii = 0; ii < d; ii++)
+            printf(" ");
+        printf(" R");
+        traverse(node->right, d + 1);
+    }
+    if (node->left)
+    {
+        for (ii = 0; ii < d; ii++)
+            printf(" ");
+        printf(" L");
+        traverse(node->left, d + 1);
+    }
+}
+#endif
